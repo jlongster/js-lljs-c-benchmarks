@@ -71,10 +71,6 @@
       $F4[(sprite) + 7] = 0;
     }
     var frame = $F4[(sprite) + 7] | 0;
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.drawImage(getResource($I4[(sprite) + 5]), $I4[offset] + (frame * $I4[size] | 0) | 0, $I4[(offset) + 1], Math.min($I4[size], clipX), Math.min($I4[(size) + 1], clipY), 0, 0, Math.min($I4[size], clipX), Math.min($I4[(size) + 1], clipY));
-    ctx.restore();
   }
   function renderEntity(entity) {
     const $U4 = $M.U4, $F4 = $M.F4;
@@ -252,8 +248,8 @@
     var now = Number(Date.now() / 1000);
     checkCollisions();
     cellsClear(cells);
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // ctx.fillStyle = 'black';
+    // ctx.fillRect(0, 0, canvas.width, canvas.height);
     for (var x = 0; x < numEntities; _ = x, x = x + 1 | 0, _) {
       if ($U4[objects + x]) {
         updateEntity($U4[objects + x], now - last);

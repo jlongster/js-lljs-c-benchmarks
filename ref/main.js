@@ -88,14 +88,14 @@ function renderSpriteClipped(ctx, sprite, x, y, clipX, clipY) {
 
     var frame = Math.floor(sprite._index);
 
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.drawImage(getResource(sprite.img),
-                  offset.x + frame * size.x, offset.y,
-                  Math.min(size.x, clipX), Math.min(size.y, clipY),
-                  0, 0,
-                  Math.min(size.x, clipX), Math.min(size.y, clipY));
-    ctx.restore();
+    // ctx.save();
+    // ctx.translate(x, y);
+    // ctx.drawImage(getResource(sprite.img),
+    //               offset.x + frame * size.x, offset.y,
+    //               Math.min(size.x, clipX), Math.min(size.y, clipY),
+    //               0, 0,
+    //               Math.min(size.x, clipX), Math.min(size.y, clipY));
+    // ctx.restore();
 }
 
 // Entities
@@ -289,8 +289,8 @@ function heartbeat() {
     checkCollisions();
     cellsClear(cells);
 
-    ctx.fillStyle = 'black';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // ctx.fillStyle = 'black';
+    // ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for(var x=0; x<numEntities; x++) {
         if(objects[x]) {
