@@ -1,3 +1,3 @@
 
 all:
-	./LLJS/bin/ljc main.ljs > main.js
+	./LLJS/bin/ljc -o main.js main.ljs

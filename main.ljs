@@ -1,4 +1,201 @@
-let util = require('util');
 
-let foo = 5;
-util.puts(foo);
+extern window, document, setTimeout,
+  Stats, console, Array, undefined, Image, isDown, Math;
+
+//let memcheck = require('memcheck');
+
+let requestAnimFrame = (function(){
+    return window.requestAnimationFrame       ||
+        window.webkitRequestAnimationFrame ||
+        window.mozRequestAnimationFrame    ||
+        window.oRequestAnimationFrame      ||
+        window.msRequestAnimationFrame     ||
+        function(callback){
+            window.setTimeout(callback, 1000 / 60);
+        };
+})();
+
+let stats;
+let canvas = document.getElementById('canvas');
+canvas.width = document.body.clientWidth / 2;
+canvas.height = document.body.clientHeight / 2;
+
+let ctx = canvas.getContext('2d');
+
+// Sprites
+
+let resourceCache = new Array(1000);
+let readyCallbacks = [];
+
+function loadResource(id, url) {
+    if(resourceCache[id] === undefined) {
+        let img = new Image();
+        img.onload = function() {
+            resourceCache[id] = img;
+
+            if(isReady()) {
+                readyCallbacks.forEach(function(func) {
+                    func();
+                });
+                readyCallbacks = [];
+            }
+        };
+        resourceCache[id] = false;
+        img.src = url;
+    }
+}
+
+function getResource(id) {
+    return resourceCache[id];
+}
+
+function isReady() {
+    let ready = true;
+    for(let k in resourceCache) {
+        if(!resourceCache[k]) {
+            ready = false;
+        }
+    }
+    return ready;
+}
+
+function onReady(func) {
+    if(isReady()) {
+        func();
+    }
+    else {
+        readyCallbacks.push(func);
+    }
+}
+
+// Scene
+
+let int IMG_BOSSES = 1;
+
+struct Vec2d {
+    int x, y;
+}
+
+struct Sprite {
+    Vec2d offset, size;
+    float speed;
+    int img;
+    int* frames;
+}
+
+struct Entity {
+    Vec2d pos, size;
+    Sprite *sprite;
+}
+
+function Entity* makeEntity() {
+    let Vec2d offset;
+    offset.x = 0;
+    offset.y = 395;
+    let Vec2d size;
+    size.x = 80;
+    size.y = 35;
+
+    let Sprite *sprite = new Sprite();
+    sprite->offset.x = 0;
+    sprite->offset.y = 395;
+    sprite->size.x = 80;
+    sprite->size.y = 35;
+    sprite->speed = 5.0;
+    sprite->img = IMG_BOSSES;
+
+    let Entity *entity = new Entity();
+    entity->pos.x = (int)(Math.random() * 250);
+    entity->pos.y = (int)(Math.random() * 250);
+    entity->size.x = 50;
+    entity->size.y = 20;
+    entity->sprite = sprite;
+
+    return entity;
+}
+
+typedef Entity* EntityPtr;
+let numEntities = 75;
+let Entity **objects = new EntityPtr[numEntities];
+for(let int i=0; i<numEntities; i++) {
+    let Entity* player = makeEntity();
+    objects[i] = player;
+}
+
+function updateEntity(Entity *entity) {
+    if(isDown('up')) {
+        entity->pos.y = entity->pos.y - 1;
+    }
+
+    if(isDown('down')) {
+        entity->pos.y = entity->pos.y + 1;
+    }
+
+    if(isDown('left')) {
+        entity->pos.x = entity->pos.x - 1;
+    }
+
+    if(isDown('right')) {
+        entity->pos.x = entity->pos.x + 1;
+    }
+}
+
+function renderEntity(Entity *entity) {
+    if(entity->sprite) {
+        renderSprite(entity->pos.x, entity->pos.y,
+                     entity->sprite);
+    }
+}
+
+function renderSprite(int x, int y, Sprite *sprite) {
+    let img = getResource(sprite->img);
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.drawImage(img,
+                  sprite->offset.x, sprite->offset.y,
+                  sprite->size.x, sprite->size.y,
+                  0, 0,
+                  sprite->size.x, sprite->size.y);
+    ctx.restore();
+}
+
+function heartbeat() {
+    stats.begin();
+
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    for(let int x=0; x<numEntities; x++) {
+        updateEntity(objects[x]);
+        renderEntity(objects[x]);
+    }
+
+    stats.end();
+    requestAnimFrame(heartbeat);
+}
+
+function finish() {
+    for(let int x=0; x<numEntities; x++) {
+        delete objects[x]->sprite;
+        delete objects[x];
+    }
+
+    delete objects;
+
+    //console.log(memcheck.report());
+}
+
+loadResource(IMG_BOSSES, 'resources/bosses.png');
+
+window.addEventListener('load', function() {
+    stats = new Stats();
+    //stats.setMode(1);
+    stats.domElement.style.position = 'absolute';
+    stats.domElement.style.right = '0px';
+    stats.domElement.style.top = '0px';
+    document.body.appendChild(stats.domElement);
+
+    onReady(heartbeat);
+});
+
