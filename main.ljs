@@ -412,8 +412,10 @@ function checkCollisions() {
 }
 
 let float last = (float)(Date.now() / 1000);
+let int count = 0;
 function heartbeat() {
     let float now = (float)(Date.now() / 1000);
+    count = 0;
 
     stats.begin();
     checkCollisions();
@@ -427,6 +429,7 @@ function heartbeat() {
         let Entity *ent = objects[i];
 
         if(ent) {
+            count++;
             updateEntity(ent, now - last);
             renderEntity(ent);
 
@@ -443,6 +446,7 @@ function heartbeat() {
 
     last = now;
     stats.end();
+    numEntitiesSpan.innerHTML = count;
     requestAnimFrame(heartbeat);
     //finish();
 }
@@ -463,6 +467,8 @@ function finish() {
 
 loadResource(IMG_BOSSES, 'resources/bosses.png');
 
+let numEntitiesSpan = document.getElementById('numEntities');
+
 window.addEventListener('load', function() {
     stats = new Stats();
     stats.setMode(1);
@@ -472,7 +478,7 @@ window.addEventListener('load', function() {
     document.body.appendChild(stats.domElement);
 
     document.getElementById('maxEntitiesPerCell').innerHTML = maxEntitiesPerCell;
-    document.getElementById('numEntities').innerHTML = numEntities;
+    numEntitiesSpan.innerHTML = numEntities;
 
     onReady(heartbeat);
 });

@@ -292,10 +292,12 @@
     }
   }
   var last = Number(Date.now() / 1000);
+  var count = 0;
   function heartbeat() {
     const $U4 = $M.U4, $F4 = $M.F4, $I4 = $M.I4;
-    var _;
+    var _, _$1;
     var now = Number(Date.now() / 1000);
+    count = 0;
     stats.begin();
     checkCollisions();
     cellsClear(cells);
@@ -304,6 +306,7 @@
     for (var i = 0; i < numEntities; _ = i, i = i + 1 | 0, _) {
       var ent = $U4[objects + i];
       if (ent) {
+        _$1 = count, count = count + 1 | 0, _$1;
         updateEntity(ent, now - last);
         renderEntity(ent);
         cellsAdd(cells, ent, $F4[(ent) + 2], $F4[((ent) + 2) + 1]);
@@ -315,6 +318,7 @@
     //renderDebug();
     last = now;
     stats.end();
+    numEntitiesSpan.innerHTML = count;
     requestAnimFrame(heartbeat);
   }
   function finish() {
@@ -330,6 +334,7 @@
     console.log(memcheck.report());
   }
   loadResource(IMG_BOSSES, 'resources/bosses.png');
+  var numEntitiesSpan = document.getElementById('numEntities');
   window.addEventListener('load', function () {
     stats = new Stats();
     stats.setMode(1);
@@ -338,7 +343,7 @@
     stats.domElement.style.top = '0px';
     document.body.appendChild(stats.domElement);
     document.getElementById('maxEntitiesPerCell').innerHTML = maxEntitiesPerCell;
-    document.getElementById('numEntities').innerHTML = numEntities;
+    numEntitiesSpan.innerHTML = numEntities;
     onReady(heartbeat);
   });
 }.call(this, typeof exports === 'undefined' ? main_ljs = {} : exports));

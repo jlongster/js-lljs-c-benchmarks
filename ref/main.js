@@ -147,6 +147,11 @@ function makeEntity(type, sprite) {
 
 var maxEntitiesPerCell = 100;
 
+function CellList() {
+    this._list = new Array(maxEntitiesPerCell);
+    this.index = 0;
+}
+
 function Cells() {}
 
 function makeCells(w, h, numX, numY) {
@@ -155,14 +160,18 @@ function makeCells(w, h, numX, numY) {
     cells.count = { x: numX, y: numY };
     cells._length = numX*numY;
 
+    cells.cache = new Array(cells._length);
+    for(var i=0; i<cells._length; i++) {
+        cells.cache[i] = new CellList();
+    }
+
     cellsClear(cells);
     return cells;
 }
 
 function cellsClear(cells) {
-    cells.cache = new Array(cells._length);
     for(var i=0; i<cells._length; i++) {
-        cells.cache[i] = [];
+        cells.cache[i].index = 0;
     }
 }
 
@@ -174,8 +183,11 @@ function cellsAdd(cells, entity, x, y) {
         var idx = (cells.count.x *
                    Math.floor(y / cellSizeY) +
                    Math.floor(x / cellSizeX));
-        if(cells.cache[idx].length < maxEntitiesPerCell) {
-            cells.cache[idx].push(entity);
+        var list = cells.cache[idx];
+
+        if(list.index < maxEntitiesPerCell) {
+            list.index++;
+            list._list[list.index - 1] = entity;
         }
     }
 }
@@ -241,12 +253,14 @@ function collides(x, y, r, b, x2, y2, r2, b2) {
              b <= y2 || y > b2);
 }
 
-function _checkCollisions(entity, entities) {
+function _checkCollisions(entity, list) {
     var pos = entity.pos;
     var size = entity.size;
 
-    if(entities) {
-        entities.forEach(function(entity2) {
+    if(list) {
+        for(var i=0; i<list.index; i++ ) {
+            var entity2 = list._list[i];
+
             if(entity2 != entity) {
                 var pos2 = entity2.pos;
                 var size2 = entity2.size;
@@ -260,7 +274,7 @@ function _checkCollisions(entity, entities) {
                     }
                 }
             }
-        });
+        }
     }
 }
 
