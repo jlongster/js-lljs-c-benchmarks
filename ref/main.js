@@ -166,9 +166,7 @@ function cellsClear(cells) {
     }
 }
 
-function cellsAdd(cells, entity) {
-    var x = entity.pos.x;
-    var y = entity.pos.y;
+function cellsAdd(cells, entity, x, y) {
     var cellSizeX = cells.size.x / cells.count.x;
     var cellSizeY = cells.size.y / cells.count.y;
 
@@ -291,7 +289,6 @@ function heartbeat() {
 
     stats.begin();
     checkCollisions();
-    stats.end();
 
     cellsClear(cells);
 
@@ -299,15 +296,24 @@ function heartbeat() {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for(var x=0; x<numEntities; x++) {
-        if(objects[x]) {
-            updateEntity(objects[x], now - last);
-            renderEntity(objects[x]);
+        var ent = objects[x];
 
-            cellsAdd(cells, objects[x]);
+        if(ent) {
+            updateEntity(ent, now - last);
+            renderEntity(ent);
+
+            cellsAdd(cells, ent, ent.pos.x, ent.pos.y);
+            cellsAdd(cells, ent, ent.pos.x + ent.size.x, ent.pos.y);
+            cellsAdd(cells, ent, ent.pos.x, ent.pos.y + ent.size.y);
+            cellsAdd(cells,
+                     ent, 
+                     ent.pos.x + ent.size.x,
+                     ent.pos.y + ent.size.y);
         }
     }
 
     last = now;
+    stats.end();
     requestAnimFrame(heartbeat);
 }
 

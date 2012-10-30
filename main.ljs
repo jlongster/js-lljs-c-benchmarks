@@ -417,7 +417,6 @@ function heartbeat() {
 
     stats.begin();
     checkCollisions();
-    stats.end();
 
     cellsClear(cells);
 
@@ -443,6 +442,7 @@ function heartbeat() {
     //renderDebug();
 
     last = now;
+    stats.end();
     requestAnimFrame(heartbeat);
     //finish();
 }

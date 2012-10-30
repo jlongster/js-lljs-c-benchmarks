@@ -298,7 +298,6 @@
     var now = Number(Date.now() / 1000);
     stats.begin();
     checkCollisions();
-    stats.end();
     cellsClear(cells);
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -315,6 +314,7 @@
     }
     //renderDebug();
     last = now;
+    stats.end();
     requestAnimFrame(heartbeat);
   }
   function finish() {
