@@ -22,10 +22,24 @@
         width: 100%;
         height: 100%;
       }
+
+      .debug {
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: .5em;
+        background-color: #333333;
+        color: #d0d0d0;
+        font-size: 16px;
+      }
     </style>
   </head>
   <body>
     <canvas id="canvas"></canvas>
+    <div class="debug">
+      maxEntitiesPerCell: <span id="maxEntitiesPerCell"></span>,
+      numEntities: <span id="numEntities"></span>
+    </div>
 
     <script type="text/javascript" src="../input.js"></script>
     <script type="text/javascript" src="../stats.min.js"></script>

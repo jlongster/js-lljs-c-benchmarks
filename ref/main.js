@@ -88,14 +88,14 @@ function renderSpriteClipped(ctx, sprite, x, y, clipX, clipY) {
 
     var frame = Math.floor(sprite._index);
 
-    // ctx.save();
-    // ctx.translate(x, y);
-    // ctx.drawImage(getResource(sprite.img),
-    //               offset.x + frame * size.x, offset.y,
-    //               Math.min(size.x, clipX), Math.min(size.y, clipY),
-    //               0, 0,
-    //               Math.min(size.x, clipX), Math.min(size.y, clipY));
-    // ctx.restore();
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.drawImage(getResource(sprite.img),
+                  offset.x + frame * size.x, offset.y,
+                  Math.min(size.x, clipX), Math.min(size.y, clipY),
+                  0, 0,
+                  Math.min(size.x, clipX), Math.min(size.y, clipY));
+    ctx.restore();
 }
 
 // Entities
@@ -145,6 +145,8 @@ function makeEntity(type, sprite) {
 
 // Cells
 
+var maxEntitiesPerCell = 100;
+
 function Cells() {}
 
 function makeCells(w, h, numX, numY) {
@@ -174,7 +176,9 @@ function cellsAdd(cells, entity) {
         var idx = (cells.count.x *
                    Math.floor(y / cellSizeY) +
                    Math.floor(x / cellSizeX));
-        cells.cache[idx].push(entity);
+        if(cells.cache[idx].length < maxEntitiesPerCell) {
+            cells.cache[idx].push(entity);
+        }
     }
 }
 
@@ -283,14 +287,16 @@ function checkCollisions() {
 
 var last = Date.now() / 1000;
 function heartbeat() {
-    stats.begin();
     var now = Date.now() / 1000;
 
+    stats.begin();
     checkCollisions();
+    stats.end();
+
     cellsClear(cells);
 
-    // ctx.fillStyle = 'black';
-    // ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     for(var x=0; x<numEntities; x++) {
         if(objects[x]) {
@@ -301,7 +307,6 @@ function heartbeat() {
         }
     }
 
-    stats.end();
     last = now;
     requestAnimFrame(heartbeat);
 }
@@ -315,6 +320,9 @@ window.addEventListener('load', function() {
     stats.domElement.style.right = '0px';
     stats.domElement.style.top = '0px';
     document.body.appendChild(stats.domElement);
+
+    document.getElementById('maxEntitiesPerCell').innerHTML = maxEntitiesPerCell;
+    document.getElementById('numEntities').innerHTML = numEntities;
 
     onReady(heartbeat);
 });

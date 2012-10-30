@@ -2,7 +2,7 @@
 extern window, document, setTimeout,
   Stats, console, Array, undefined, Image, isDown, Math, Date;
 
-// let memcheck = require('memcheck');
+let memcheck = require('memcheck');
 
 let requestAnimFrame = (function(){
     return window.requestAnimationFrame       ||
@@ -14,6 +14,12 @@ let requestAnimFrame = (function(){
             window.setTimeout(callback, 1000 / 60);
         };
 })();
+
+let seed = 124;
+Math.random = function () {
+    seed = ((seed * 1103515245) + 12345) & 0x7fffffff;
+    return seed / 0x7FFFFFFF;
+}
 
 let stats;
 let canvas = document.getElementById('canvas');
@@ -80,6 +86,10 @@ struct Vec2di {
 
 // Sprites
 
+function debugDrawImage(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh) {
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+}
+
 struct Sprite {
     Vec2di offset, size;
     float speed;
@@ -98,7 +108,7 @@ function renderSprite(ctx, Sprite* sprite, int x, int y) {
 
 function renderSpriteClipped(ctx,
                              Sprite* sprite,
-                             int x, int y, 
+                             int x, int y,
                              int clipX, int clipY) {
     let Vec2di *offset = &sprite->offset;
     let Vec2di *size = &sprite->size;
@@ -112,14 +122,14 @@ function renderSpriteClipped(ctx,
 
     let int frame = sprite->_index;
 
-    // ctx.save();
-    // ctx.translate(x, y);
-    // ctx.drawImage(getResource(sprite->img),
-    //               offset->x + frame * size->x, offset->y,
-    //               Math.min(size->x, clipX), Math.min(size->y, clipY),
-    //               0, 0,
-    //               Math.min(size->x, clipX), Math.min(size->y, clipY));
-    // ctx.restore();
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.drawImage(img,
+                  offset->x + frame * size->x, offset->y,
+                  Math.min(size->x, clipX), Math.min(size->y, clipY),
+                  0, 0,
+                  Math.min(size->x, clipX), Math.min(size->y, clipY));
+    ctx.restore();
 }
 
 // Entities
@@ -131,6 +141,7 @@ struct Entity {
     Sprite *sprite;
 }
 typedef Entity* EntityPtr;
+typedef EntityPtr* EntityPtrPtr;
 
 function renderEntity(Entity *entity) {
     if(entity->sprite) {
@@ -176,16 +187,19 @@ function Entity* makeEntity(int type, Sprite *sprite) {
 
 // Cells
 
-struct CellNode {
-    Entity* entity;
-    CellNode *next;
+let int maxEntitiesPerCell = 100;
+
+struct CellList {
+    EntityPtr *_list;
+    int index;
+    bool missed;
 }
-typedef CellNode* CellNodePtr;
+typedef CellList* CellListPtr;
 
 struct Cells {
     Vec2di size, count;
     int _length;
-    CellNodePtr *cache;
+    CellListPtr *cache;
 }
 
 function Cells* makeCells(int w, int h, int numX, int numY) {
@@ -195,59 +209,59 @@ function Cells* makeCells(int w, int h, int numX, int numY) {
     cells->count.x = numX;
     cells->count.y = numY;
     cells->_length = numX*numY;
-    cells->cache = null;
+    cells->cache = new CellListPtr[cells->_length];
+
+    for(let int i=0; i<cells->_length; i++) {
+        let CellList *list = new CellList();
+        list->_list = new EntityPtr[maxEntitiesPerCell];
+        list->index = 0;
+        list->missed = (bool)(false);
+        cells->cache[i] = list;
+    }
 
     cellsClear(cells);
     return cells;
 }
 
 function cellsClear(Cells *cells) {
-    if(cells->cache) {
-        for(let int i=0; i<cells->_length; i++) {
-            let CellNode *ptr = cells->cache[i];
-            while(ptr) {
-                let CellNode *old = ptr;
-                ptr = ptr->next;
-                delete old;
-            }
-        }
-        delete cells->cache;
-    }
-
-    cells->cache = new CellNodePtr[cells->_length];
     for(let int i=0; i<cells->_length; i++) {
-        cells->cache[i] = null;
+        cells->cache[i]->index = 0;
+        cells->cache[i]->missed = (bool)(false);
     }
 }
 
-function cellsAdd(Cells *cells, Entity* entity) {
-    let float x = entity->pos.x;
-    let float y = entity->pos.y;
-    let int cellSizeX = cells->size.x / cells->count.x;
-    let int cellSizeY = cells->size.y / cells->count.y;
+function cellsRelease(Cells *cells) {
+    for(let int i=0; i<cells->_length; i++) {
+        delete cells->cache[i]->_list;
+        delete cells->cache[i];
+    }
+
+    delete cells->cache;
+}
+
+function cellsAdd(Cells *cells, Entity* entity, float x, float y) {
+    let float cellSizeX = cells->size.x / (float)(cells->count.x);
+    let float cellSizeY = cells->size.y / (float)(cells->count.y);
 
     if(x > 0 && y > 0 && x < cells->size.x && y < cells->size.y) {
         let int idx = (cells->count.x *
                        (int)(y / cellSizeY) +
                        (int)(x / cellSizeX));
 
-        let CellNode *node = new CellNode();
-        node->entity = entity;
-        
-        if(cells->cache[idx]) {
-            node->next = cells->cache[idx];
+        let CellList *list = cells->cache[idx];
+        if(list->index < maxEntitiesPerCell) {
+            list->index = list->index + 1;
+            list->_list[list->index - 1] = entity;
         }
         else {
-            node->next = null;
+            list->missed = (bool)(true);
         }
-
-        cells->cache[idx] = node;
     }
 }
 
-function CellNode* cellsGet(Cells *cells, x, y) {
-    let int cellSizeX = cells->size.x / cells->count.x;
-    let int cellSizeY = cells->size.y / cells->count.y;
+function CellList* cellsGet(Cells *cells, x, y) {
+    let float cellSizeX = cells->size.x / (float)(cells->count.x);
+    let float cellSizeY = cells->size.y / (float)(cells->count.y);
 
     if(x > 0 && y > 0 && x < cells->size.x && y < cells->size.y) {
         let int idx = (cells->count.x *
@@ -259,6 +273,47 @@ function CellNode* cellsGet(Cells *cells, x, y) {
     return null;
 }
 
+function renderDebug() {
+    let int cellSizeX = cells->size.x / cells->count.x;
+    let int cellSizeY = cells->size.y / cells->count.y;
+
+    for(let int i=0; i<cells->_length; i++) {
+        let int x = i % cells->count.x;
+        let int y = i / cells->count.x;
+        let CellList *list = cells->cache[i];
+
+        if(list->missed) {
+            ctx.fillStyle = 'rgba(0, 255, 0, .2)';
+        }
+        else if(list->index > 0) {
+            ctx.fillStyle = 'rgba(255, 0, 0, .2)';
+        }
+
+        if(list->missed || list->index > 0) {
+            ctx.fillRect(x * cellSizeX,
+                         y * cellSizeY,
+                         cellSizeX,
+                         cellSizeY);
+        }
+
+        for(let int j=0; j<list->index; j++) {
+            if(list->_list[j] == playerEntity) {
+
+                ctx.fillRect(x * cellSizeX,
+                             y * cellSizeY,
+                             cellSizeX,
+                             cellSizeY);
+            }
+        }
+    }
+
+    for(let int i=0; i<numEntities; i++) {
+        let Entity *ent = objects[i];
+        ctx.strokeRect(ent->pos.x, ent->pos.y,
+                       ent->size.x, ent->size.y);
+    }
+}
+
 // Game
 
 let int ENTITY_PLAYER = 1;
@@ -266,7 +321,7 @@ let int ENTITY_ENEMY = 2;
 
 let int IMG_BOSSES = 1;
 
-let numEntities = 3000;
+let int numEntities = 3000;
 let EntityPtr *objects = new EntityPtr[numEntities];
 let Cells *cells = makeCells((int)(canvas.width), (int)(canvas.height), 6, 6);
 
@@ -305,31 +360,35 @@ function removeObject(entity) {
     }
 }
 
-function collides(x, y, r, b, x2, y2, r2, b2) {
+function bool collides(int x, int y, int r, int b, int x2, int y2, int r2, int b2) {
     return !(r <= x2 || x > r2 ||
              b <= y2 || y > b2);
 }
 
-function _checkCollisions(Entity *entity, CellNode* node) {
-    let Vec2d *pos = &entity->pos;
-    let Vec2di *size = &entity->size;
+function _checkCollisions(Entity *entity, CellList* list) {
+    if(list) {
+        let float posX = entity->pos.x;
+        let float posY = entity->pos.y;
+        let int sizeX = entity->size.x;
+        let int sizeY = entity->size.y;
 
-    while(node) {
-        if(node->entity != entity) {
-            let Vec2d *pos2 = &node->entity->pos;
-            let Vec2di *size2 = &node->entity->size;
+        let EntityPtr *ents = list->_list;
 
-            if(collides(pos->x, pos->y,
-                        pos->x + size->x, pos->y + size->y,
-                        pos2->x, pos2->y,
-                        pos2->x + size2->x, pos2->y + size2->y)) {
-                if(entity == playerEntity) {
-                    removeObject(node->entity);
+        for(let int i=0; i<list->index; i++) {
+            if(ents[i] != entity) {
+                let Vec2d *pos2 = &(ents[i]->pos);
+                let Vec2di *size2 = &(ents[i]->size);
+
+                if(collides(posX, posY,
+                            posX + sizeX, posY + sizeY,
+                            pos2->x, pos2->y,
+                            pos2->x + size2->x, pos2->y + size2->y)) {
+                    if(entity == playerEntity) {
+                        removeObject(ents[i]);
+                    }
                 }
             }
         }
-
-        node = node->next;
     }
 }
 
@@ -354,25 +413,35 @@ function checkCollisions() {
 
 let float last = (float)(Date.now() / 1000);
 function heartbeat() {
-    stats.begin();
     let float now = (float)(Date.now() / 1000);
 
+    stats.begin();
     checkCollisions();
+    stats.end();
+
     cellsClear(cells);
 
-    // ctx.fillStyle = 'black';
-    // ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'black';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    for(let int x=0; x<numEntities; x++) {
-        if(objects[x]) {
-            updateEntity(objects[x], now - last);
-            renderEntity(objects[x]);
+    for(let int i=0; i<numEntities; i++) {
+        let Entity *ent = objects[i];
 
-            cellsAdd(cells, objects[x]);
+        if(ent) {
+            updateEntity(ent, now - last);
+            renderEntity(ent);
+
+            cellsAdd(cells, ent, ent->pos.x, ent->pos.y);
+            cellsAdd(cells, ent, ent->pos.x + ent->size.x, ent->pos.y);
+            cellsAdd(cells, ent, ent->pos.x, ent->pos.y + ent->size.y);
+            cellsAdd(cells, ent,
+                     ent->pos.x + ent->size.x,
+                     ent->pos.y + ent->size.y);
         }
     }
 
-    stats.end();
+    //renderDebug();
+
     last = now;
     requestAnimFrame(heartbeat);
     //finish();
@@ -386,11 +455,10 @@ function finish() {
 
     delete objects;
 
-    cellsClear(cells);
-    delete cells->cache;
+    cellsRelease(cells);
     delete cells;
 
-    //console.log(memcheck.report());
+    console.log(memcheck.report());
 }
 
 loadResource(IMG_BOSSES, 'resources/bosses.png');
@@ -403,6 +471,8 @@ window.addEventListener('load', function() {
     stats.domElement.style.top = '0px';
     document.body.appendChild(stats.domElement);
 
+    document.getElementById('maxEntitiesPerCell').innerHTML = maxEntitiesPerCell;
+    document.getElementById('numEntities').innerHTML = numEntities;
+
     onReady(heartbeat);
 });
-
