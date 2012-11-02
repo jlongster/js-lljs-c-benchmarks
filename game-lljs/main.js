@@ -4,7 +4,7 @@
   const $malloc = $M.malloc, $I4 = $M.I4, $F4 = $M.F4, $U4 = $M.U4;
   var _;
   // Config
-  var numEntities = 1000;
+  var numEntities = 3000;
   var maxEntitiesPerCell = 100;
   // Util
   var memcheck = require('memcheck');
@@ -21,8 +21,8 @@
   ;
   var stats;
   var canvas = document.getElementById('canvas');
-  canvas.width = document.body.clientWidth;
-  canvas.height = document.body.clientHeight;
+  canvas.width = document.body.clientWidth / 2;
+  canvas.height = document.body.clientHeight / 2;
   var ctx = canvas.getContext('2d');
   // Sprites
   var resourceCache = new Array(1000);
@@ -111,6 +111,9 @@
       if (isDown('right')) {
         $F4[(entity) + 2] = $F4[(entity) + 2] + 100 * dt;
       }
+    } else {
+      $F4[(entity) + 2] = $F4[(entity) + 2] + Number(random() - 0.5);
+      $F4[((entity) + 2) + 1] = $F4[((entity) + 2) + 1] + Number(random() - 0.5);
     }
     if ($U4[(entity) + 6]) {
       updateSprite($U4[(entity) + 6], dt);
@@ -120,8 +123,8 @@
     const $malloc = $M.malloc, $I4 = $M.I4, $F4 = $M.F4, $U4 = $M.U4;
     var entity = $malloc(28) >> 2;
     $I4[entity] = type;
-    $F4[(entity) + 2] = Number(random() * canvas.width);
-    $F4[((entity) + 2) + 1] = Number(random() * canvas.height);
+    $F4[(entity) + 2] = random() * canvas.width | 0;
+    $F4[((entity) + 2) + 1] = random() * canvas.height | 0;
     $I4[(entity) + 4] = $I4[(sprite) + 2];
     $I4[((entity) + 4) + 1] = $I4[((sprite) + 2) + 1];
     $U4[(entity) + 6] = sprite;
@@ -234,7 +237,8 @@
   $F4[(playerSprite) + 7] = 0;
   var playerEntity = makeEntity(ENTITY_PLAYER, playerSprite);
   $U4[objects + 0] = playerEntity;
-  for (var i = 1; i < numEntities; _ = i, i = i + 1 | 0, _) {
+  function makeEnemySprite() {
+    const $malloc = $M.malloc, $I4 = $M.I4, $F4 = $M.F4;
     var enemySprite = $malloc(32) >> 2;
     $I4[(enemySprite)] = 0;
     $I4[((enemySprite)) + 1] = 111;
@@ -244,14 +248,17 @@
     $I4[(enemySprite) + 5] = IMG_BOSSES;
     $I4[(enemySprite) + 6] = 6;
     $F4[(enemySprite) + 7] = 0;
-    $U4[objects + i] = makeEntity(ENTITY_ENEMY, enemySprite);
+    return enemySprite;
+  }
+  for (var i = 1; i < numEntities; _ = i, i = i + 1 | 0, _) {
+    $U4[objects + i] = makeEntity(ENTITY_ENEMY, makeEnemySprite());
   }
   function removeObject(entity) {
     const $U4 = $M.U4;
     var _;
     for (var i = 0; i < numEntities; _ = i, i = i + 1 | 0, _) {
       if ($U4[objects + i] == entity) {
-        $U4[objects + i] = 0;
+        $U4[objects + i] = makeEntity(ENTITY_ENEMY, makeEnemySprite());
       }
     }
   }

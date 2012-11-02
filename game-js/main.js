@@ -1,7 +1,7 @@
 
 // Config
 
-var numEntities = 1000;
+var numEntities = 3000;
 var maxEntitiesPerCell = 100;
 
 // Util
@@ -25,8 +25,8 @@ Math.random = function () {
 
 var stats;
 var canvas = document.getElementById('canvas');
-canvas.width = document.body.clientWidth;
-canvas.height = document.body.clientHeight;
+canvas.width = document.body.clientWidth / 2;
+canvas.height = document.body.clientHeight / 2;
 
 var ctx = canvas.getContext('2d');
 
@@ -139,6 +139,10 @@ function updateEntity(entity, dt) {
             entity.pos.x = entity.pos.x + 100*dt;
         }
     }
+    else {
+        entity.pos.y += Math.random() - .5;
+        entity.pos.x += Math.random() - .5;
+    }
 
     if(entity.sprite) {
         updateSprite(entity.sprite, dt);
@@ -148,8 +152,8 @@ function updateEntity(entity, dt) {
 function makeEntity(type, sprite) {
     var entity = new Entity();
     entity.type = type;
-    entity.pos = { x: Math.random() * canvas.width,
-                   y: Math.random() * canvas.height };
+    entity.pos = { x: Math.floor(Math.random() * canvas.width),
+                   y: Math.floor(Math.random() * canvas.height) };
     entity.size = { x: sprite.size.x, y: sprite.size.y };
     entity.sprite = sprite;
 
@@ -253,7 +257,7 @@ for(var i=1; i<numEntities; i++) {
 function removeObject(entity) {
     for(var i=0; i<numEntities; i++) {
         if(objects[i] == entity) {
-            objects[i] = null;
+            objects[i] = makeEntity(ENTITY_ENEMY, enemySprite);
         }
     }
 }

@@ -44,7 +44,7 @@ typedef struct Vec2di {
 
 // Config
 
-int numEntities = 1000;
+int numEntities = 3000;
 int maxEntitiesPerCell = 100;
 
 // Sprites
@@ -251,19 +251,17 @@ Sprite* makeEnemySprite() {
     return enemySprite;
 }
 
-int collides(int x, int y, int r, int b, int x2, int y2, int r2, int b2) {
-    return !(r <= x2 || x > r2 ||
-             b <= y2 || y > b2);
-}
-
 void removeObject(Entity *entity) {
     for(int i=0; i<numEntities; i++) {
         if(objects[i] == entity) {
-            //objects[i] = makeEntity(ENTITY_ENEMY,
-            //makeEnemySprite());
-            objects[i] = NULL;
+            objects[i] = makeEntity(ENTITY_ENEMY, makeEnemySprite());
         }
     }
+}
+
+int collides(int x, int y, int r, int b, int x2, int y2, int r2, int b2) {
+    return !(r <= x2 || x > r2 ||
+             b <= y2 || y > b2);
 }
 
 void _checkCollisions(Entity *entity, CellList* list) {
