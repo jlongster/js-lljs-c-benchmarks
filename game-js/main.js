@@ -1,7 +1,7 @@
 
 // Config
 
-var numEntities = 3000;
+var numEntities = 30000;
 var maxEntitiesPerCell = 100;
 
 // Util
@@ -88,6 +88,10 @@ function renderSprite(ctx, sprite, x, y) {
     renderSpriteClipped(ctx, sprite, x, y, sprite.size.x, sprite.size.y);
 }
 
+function dbg(){}
+
+var c = 0;
+var d = Date.now();
 function renderSpriteClipped(ctx, sprite, x, y, clipX, clipY) {
     var offset = sprite.offset;
     var size = sprite.size;
@@ -103,12 +107,21 @@ function renderSpriteClipped(ctx, sprite, x, y, clipX, clipY) {
 
     ctx.save();
     ctx.translate(x, y);
-    ctx.drawImage(getResource(sprite.img),
-                  offset.x + frame * size.x, offset.y,
-                  Math.min(size.x, clipX), Math.min(size.y, clipY),
-                  0, 0,
-                  Math.min(size.x, clipX), Math.min(size.y, clipY));
+    c++;
+    var s = 50;
+    ctx.drawImage(img, 0, 0, s, s, 0, 0, s, s);
+    // dbg(img,
+    //     (offset.x + (frame * size.x | 0)) | 0, offset.y | 0,
+    //     Math.min(size.x, clipX) | 0, Math.min(size.y, clipY) | 0,
+    //     0, 0,
+    //     Math.min(size.x, clipX) | 0, Math.min(size.y, clipY) | 0);
     ctx.restore();
+
+    if((Date.now() - d) > 1000) {
+        console.log(c);
+        c = 0;
+        d = Date.now();
+    }
 }
 
 // Entities
@@ -243,6 +256,10 @@ var playerEntity = makeEntity(ENTITY_PLAYER, playerSprite);
 objects[0] = playerEntity;
 
 for(var i=1; i<numEntities; i++) {
+    objects[i] = makeEntity(ENTITY_ENEMY, makeEnemySprite());
+}
+
+function makeEnemySprite() {
     var enemySprite = new Sprite();
     enemySprite.offset = { x: 0, y: 111 };
     enemySprite.size = { x: 240/6, y: 40 };
@@ -250,14 +267,15 @@ for(var i=1; i<numEntities; i++) {
     enemySprite.img = IMG_BOSSES;
     enemySprite.numFrames = 6;
     enemySprite._index = 0;
-
-    objects[i] = makeEntity(ENTITY_ENEMY, enemySprite);
+    return enemySprite;
 }
 
 function removeObject(entity) {
     for(var i=0; i<numEntities; i++) {
         if(objects[i] == entity) {
-            objects[i] = makeEntity(ENTITY_ENEMY, enemySprite);
+            //for(var j=0; j<1000; j++) {
+                objects[i] = makeEntity(ENTITY_ENEMY, makeEnemySprite());
+        //}
         }
     }
 }
@@ -327,16 +345,16 @@ function heartbeat() {
         var ent = objects[x];
 
         if(ent) {
-            updateEntity(ent, now - last);
+            //updateEntity(ent, now - last);
             renderEntity(ent);
 
-            cellsAdd(cells, ent, ent.pos.x, ent.pos.y);
-            cellsAdd(cells, ent, ent.pos.x + ent.size.x, ent.pos.y);
-            cellsAdd(cells, ent, ent.pos.x, ent.pos.y + ent.size.y);
-            cellsAdd(cells,
-                     ent, 
-                     ent.pos.x + ent.size.x,
-                     ent.pos.y + ent.size.y);
+            // cellsAdd(cells, ent, ent.pos.x, ent.pos.y);
+            // cellsAdd(cells, ent, ent.pos.x + ent.size.x, ent.pos.y);
+            // cellsAdd(cells, ent, ent.pos.x, ent.pos.y + ent.size.y);
+            // cellsAdd(cells,
+            //          ent, 
+            //          ent.pos.x + ent.size.x,
+            //          ent.pos.y + ent.size.y);
         }
     }
 
